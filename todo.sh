@@ -1,4 +1,5 @@
-#!/ usr/bin/env bash
+#!/usr/bin/env bash
+
 TASKS_FILE="tasks.csv"
 get_next_id() {
     if [[ ! -s "$TASKS_FILE" ]]; then
@@ -12,6 +13,7 @@ show_help() {
     echo ""
     echo "Commands:"
     echo "  add TITLE    Add a new task"
+    echo "  add [-p priority] TITLE    Add a new task (priority: low, medium, high | default: medium)"
     echo "  list         List all pending tasks"
     echo "  done ID      Mark a task as completed"
     echo "  delete ID    Delete a task permanently"
@@ -19,14 +21,21 @@ show_help() {
 }
 
 add_task() {
-    local title="$1"
-    if [[ -z "$title" ]]; then
-        echo "Error: Task title cannot be empty."
-        echo "Usage: ./todo.sh add \"TITLE\""
-        exit 1
-    fi
+    local priority="medium"
 
-    local id=$(get_next_id)
+    if [[ "$1" == "-p" ]]; then
+        shift
+        priority="$1"
+        shift
+        if [[ "$priority" != "low" && "$priority" != "medium" && "$priority" != "high" ]]; then
+            echo "Error: Invalid priority '$priority'. Allowed values: low, medium, high."
+            exit 1
+        fi
+    fi
+local title="$1"
+    local id
+    id=$(get_next_id)
+
     echo "$id,todo,$title" >> "$TASKS_FILE"
     echo "Added task $id"
 }
