@@ -18,26 +18,63 @@ show_help() {
     echo "  done ID      Mark a task as completed"
     echo "  delete ID    Delete a task permanently"
     echo "  help         Display this help message"
+
+    local title="$1"
+    local id
+    id=$(get_next_id)
 }
 
+
+    # if [[ -z "$title" ]]; then
+    #     echo "Error: Task title is required."
+    #     echo "Usage: ./todo.sh add [-p priority] TITLE"
+    #     exit 1
+    # fi
+
 add_task() {
+    echo "I AM INSIDE ADD_TASK"
     local priority="medium"
 
-    if [[ "$1" == "-p" ]]; then
-        shift
-        priority="$1"
-        shift
-        if [[ "$priority" != "low" && "$priority" != "medium" && "$priority" != "high" ]]; then
-            echo "Error: Invalid priority '$priority'. Allowed values: low, medium, high."
-            exit 1
-        fi
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            -p|--priority)
+            if [[ -z "$2" ]]; then
+                echo "Error: -p needs a value" >&2
+                exit 1
+            fi
+                priority="$2"
+                shift 2
+                ;;
+            -*)
+                echo "Error: Invalid option: $1" >&2
+                exit 1
+                ;;
+            *)
+                break
+                ;;
+        esac
+    done
+    echo "DEBUG: Arguments received: $@"
+
+    local title="$*"
+
+    echo "DEBUG: Title is: '$title'"
+
+    if [[ -z "$title" ]]; then
+        echo "Error: Task title is required." >&2
+        echo "Usage: ./todo.sh add [-p priority] TITLE" >&2
+        exit 1
     fi
-local title="$1"
+
+    if [[ "$title" == *"|"* ]]; then
+       echo "Error: Task title cannot contain '|'" >&2
+       exit 1
+    fi
     local id
     id=$(get_next_id)
 
-    echo "$id,todo,$title" >> "$TASKS_FILE"
-    echo "Added task $id"
+    echo "$id,todo,$priority,$title" >> "$TASKS_FILE"
+    echo "Added task $id [$priority]"
 }
 
 list_tasks() {
@@ -62,7 +99,7 @@ done_task() {
         awk -F',' -v id="$target_id" 'BEGIN {OFS=","} $1 == id {$2="done"} {print}' "$TASKS_FILE" > "${TASKS_FILE}.tmp" && mv "${TASKS_FILE}.tmp" "$TASKS_FILE"
         echo "Task $target_id done."
     else
-        echo "Error: Task ID $target_id not found."
+        echo "Error: Unknown ID '$target_id'." >&2
     fi
 }
 
@@ -78,13 +115,13 @@ delete_task() {
         awk -F',' -v id="$target_id" '$1 != id {print}' "$TASKS_FILE" > "${TASKS_FILE}.tmp" && mv "${TASKS_FILE}.tmp" "$TASKS_FILE"
         echo "Deleted task $target_id."
     else
-        echo "Error: Task ID $target_id not found."
+        echo "Error: Unknown ID '$target_id'." >&2
     fi
 }
 case "$1" in
     add)
         shift
-        add_task "$1"
+        add_task "$@"
         ;;
     list)
         list_tasks
