@@ -1,6 +1,10 @@
 #!/usr/bin/env bash
 TASKS_FILE="tasks.csv"
-
+init_storage() {
+    if [[ ! -f "$TASKS_FILE" ]]; then
+        touch "$TASKS_FILE"
+    fi
+}
 get_next_id() {
     if [[ ! -s "$TASKS_FILE" ]]; then
         echo 1
@@ -19,9 +23,6 @@ show_help() {
     echo "  delete ID    Delete a task permanently"
     echo "  help         Display this help message"
 
-    local title="$1"
-    local id
-    id=$(get_next_id)
 }
 
 
