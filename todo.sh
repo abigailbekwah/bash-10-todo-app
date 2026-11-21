@@ -31,28 +31,35 @@ show_help() {
     #     exit 1
     # fi
 
-add_task() {
-    local priority="medium"
+    cmd_add() {
+    local priority="medium" opt OPTIND=1
 
-    while [[ $# -gt 0 ]]; do
-        case "$1" in
-            -p|--priority)
-            if [[ -z "$2" ]]; then
-                echo "Error: -p needs a value" >&2
-                exit 1
-            fi
-                priority="$2"
-                shift 2
+    while getopts ":p:" opt; do
+        case "$opt" in
+            p)
+                priority="$OPTARG"
                 ;;
-            -*)
-                echo "Error: Invalid option: $1" >&2
+            \?)
+                echo "Error: Invalid option: -$OPTARG" >&2
                 exit 1
                 ;;
-            *)
-                break
+            :)
+                echo "Error: -$OPTARG needs a value" >&2
+                exit 1
                 ;;
         esac
     done
+        case "$priority" in
+        low|medium|high)
+            ;;
+        *)
+            echo "Error: Invalid priority '$priority'. Use low, medium, or high." >&2
+            exit 1
+            ;;
+        esac
+
+    shift $((OPTIND - 1))
+   
 
     local title="$*"
 
@@ -80,7 +87,14 @@ list_tasks() {
     fi
 
     echo "ID  STATUS  TITLE"
-    awk -F'|' '$2 == "todo" { printf "%-4s%-8s%s\n", $1, $2, $4 }' "$TASKS_FILE"
+
+    awk -F'|' -v OFS='|' '$2 == "todo" {
+    p = ($3 == "high") ? 1 : ($3 == "medium") ? 2 : 3
+    print p, $0
+    }' "$TASKS_FILE" |
+    sort -t'|' -k1,1n |
+    cut -d'|' -f2- |
+    awk -F'|' '{ printf "%-4s%-8s%s\n", $1, $2, $4 }'
 }
 
 done_task() {
@@ -120,7 +134,7 @@ case "$1" in
         ;;
     add)
         shift
-        add_task "$@"
+        cmd_add "$@"
         ;;
     list)
         list_tasks
